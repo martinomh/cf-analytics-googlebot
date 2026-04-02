@@ -1,6 +1,10 @@
 services:
   cf-googlebot-archiver:
-    build: .
+    build:
+      context: .
+      # Host molto vecchi (es. Debian Buster + Docker recente): seccomp può far fallire
+      # `pip`/`python` in build con PermissionError su time.time(). Solo fase di build.
+      privileged: true
     image: cf-googlebot-archiver:local
     ports:
       - "${HTTP_PORT:-418}:418"

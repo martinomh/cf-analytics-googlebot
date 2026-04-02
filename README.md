@@ -63,7 +63,7 @@ docker buildx build --platform linux/arm/v7 -t cf-googlebot-archiver:armv7 --loa
 
 Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
-**Raspberry / build:** base **`python:3.12-slim-bookworm`** (Debian): su **Pi armv7** la variante **Alpine** poteva far crashare `pip` durante il build (es. exit **139** / SIGSEGV). L’init nel container è quello di Docker (`init: true` in `docker-compose.yml`). Se il build fallisce per **TLS**, verifica **data/ora** (`timedatectl`, NTP) e rete/DNS.
+**Raspberry / build:** base **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). In `docker-compose.yml`, **`build.privileged: true`** aggira seccomp troppo stretti su host datati (es. **Buster**), dove `pip` poteva fallire con **`PermissionError` su `time.time()`** durante l’import di `logging`. Vale **solo** per i container di build, non per il servizio in esecuzione. L’init a runtime è Docker (`init: true`). Per **TLS** in build, controlla data/ora (NTP) e DNS.
 
 ## API e operatività
 
