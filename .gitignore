@@ -1,2 +1,5 @@
 .env
 legacy/
+data/
+__pycache__/
+*.py[cod]

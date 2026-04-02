@@ -1,0 +1,27 @@
+{% if row %}
+<p class="meta">
+  <strong>Ultimo ingest</strong>:
+  {% if row['status'] == 'success' %}
+  <span class="ok">OK</span>
+  {% elif row['status'] == 'failed' %}
+  <span class="err">Fallito</span>
+  {% else %}
+  <span class="muted">{{ row['status'] }}</span>
+  {% endif %}
+  · giorno archiviato <code>{{ row['target_date_utc'] }}</code>
+  {% if row['finished_at'] %}
+  · fine {{ row['finished_at'] }}
+  {% endif %}
+  {% if row['duration_ms'] is not none %}
+  · {{ row['duration_ms'] }} ms
+  {% endif %}
+  {% if row['rows_written'] is not none %}
+  · righe {{ row['rows_written'] }}
+  {% endif %}
+</p>
+{% if row['error_message'] %}
+<p class="err small">{{ row['error_message'] }}</p>
+{% endif %}
+{% else %}
+<p class="meta muted">Nessun run ancora registrato. Dopo il primo ingest compariranno data e esito qui.</p>
+{% endif %}

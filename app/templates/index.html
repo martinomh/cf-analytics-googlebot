@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>🫖🤖 Archivio Googlebot — Cloudflare Analytics</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #f38020;
+      --toolbar-field-text: #0f1419;
+      --toolbar-field-border: #6d7f94;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 1.25rem 1.5rem 2rem;
+      line-height: 1.45;
+    }
+    h1 { font-size: 1.35rem; font-weight: 600; margin: 0; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg);
+      margin-bottom: 1rem;
+      padding-bottom: 0.35rem;
+      padding-top: 0.35rem;
+      box-shadow: 0 6px 14px -10px rgba(0, 0, 0, 0.55);
+    }
+    .page-head {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.55rem 0.85rem;
+    }
+    .header-toolbar {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 0.45rem 0.65rem;
+      padding: 0.35rem 0.5rem;
+      margin-left: auto;
+      width: fit-content;
+      max-width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .header-toolbar label.filter-select-lbl {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      margin: 0;
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .header-toolbar-filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 0.45rem 0.65rem;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .header-toolbar select.filter-select,
+    .header-toolbar .date-toolbar input[type="date"] {
+      background: var(--muted);
+      border: 1px solid var(--toolbar-field-border);
+      color: var(--toolbar-field-text);
+      padding: 0.32rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color-scheme: light;
+    }
+    .header-toolbar select.filter-select {
+      min-width: 6.5rem;
+      max-width: min(10.5rem, 100%);
+      width: auto;
+      cursor: pointer;
+    }
+    .header-toolbar .date-toolbar input[type="date"] {
+      width: 8rem;
+      min-width: 8rem;
+      max-width: 100%;
+    }
+    .date-toolbar {
+      flex: 0 0 auto;
+      width: fit-content;
+      max-width: 100%;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      overflow-x: auto;
+    }
+    .date-toolbar .date-toolbar-row {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: flex-end;
+      gap: 0.4rem 0.5rem;
+    }
+    .header-toolbar .date-toolbar input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.85;
+    }
+    .header-toolbar .date-toolbar .btn-load {
+      flex-shrink: 0;
+      padding: 0.34rem 0.55rem;
+      font-size: 0.78rem;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+    .page-title {
+      flex: 1 1 10rem;
+      min-width: 0;
+      line-height: 1.25;
+    }
+    .chart-summary {
+      margin: 0.85rem 0 0;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.25rem; max-width: 52rem; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      margin-bottom: 1rem;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: flex-end; }
+    label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; color: var(--muted); }
+    input[type="date"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.45rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      min-width: 10rem;
+    }
+    button {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      padding: 0.55rem 1.1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button.secondary { background: #334155; color: var(--text); }
+    button.secondary.warn { background: #7c2d12; color: #ffedd5; }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
+    .meta code { color: var(--text); }
+    .small { font-size: 0.82rem; }
+    .ok { color: #4ade80; }
+    .err { color: #fecaca; }
+    .muted { color: var(--muted); }
+    .chart-axis-layout {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.15rem;
+      margin-top: 0.35rem;
+    }
+    .axis-side {
+      flex: 0 0 2.35rem;
+      width: 2.35rem;
+      min-width: 2.35rem;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 0.55rem;
+      line-height: 1.1;
+      color: var(--muted);
+    }
+    label.axis-chk {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.06rem;
+      margin: 0 0 0.1rem;
+      cursor: pointer;
+      width: 100%;
+      max-width: 2.35rem;
+    }
+    label.axis-chk:hover { color: var(--text); }
+    label.axis-chk input[type="checkbox"] {
+      width: 1.05rem;
+      height: 1.05rem;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+    label.axis-chk .axis-chk-txt {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.8rem;
+      line-height: 1.05;
+      word-break: break-all;
+    }
+    .chart-wrap--embed {
+      position: relative;
+      flex: 1 1 auto;
+      min-width: 0;
+      height: 320px;
+      margin: 0;
+    }
+    .chart-wrap--embed.tall { height: 280px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+    th, td { border: 1px solid var(--border); padding: 0.4rem 0.5rem; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    th { background: rgba(0,0,0,0.25); color: var(--muted); font-weight: 600; }
+    #error-box .err {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-top: 0.75rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="page-head">
+      <h1 class="page-title">🫖🤖 Archivio Googlebot — Cloudflare Analytics</h1>
+      <div class="header-toolbar" aria-label="Filtri e intervallo date">
+        <div class="header-toolbar-filters" id="dashboard-filters">
+          <label class="filter-select-lbl">Tipologia HTTP
+            <select class="filter-select" id="filter-http" title="Filtra per famiglia di status HTTP">
+              <option value="all" selected>Tutte</option>
+              <option value="200">200</option>
+              <option value="3xx">3xx</option>
+              <option value="4xx">4xx</option>
+              <option value="5xx">5xx</option>
+              <option value="altro">Altro</option>
+            </select>
+          </label>
+          <label class="filter-select-lbl">Query string
+            <select class="filter-select" id="filter-qs" title="Filtra per presenza query string">
+              <option value="all" selected>Tutte</option>
+              <option value="0">No (senza)</option>
+              <option value="1">Sì (con)</option>
+            </select>
+          </label>
+          <label class="filter-select-lbl">Classe Googlebot
+            <select class="filter-select" id="filter-ua" title="Filtra per classe User-Agent">
+              <option value="all" selected>Tutte</option>
+              <option value="googlebot">Googlebot</option>
+              <option value="googlebot_image">Googlebot-Image</option>
+              <option value="googlebot_other">Altri Googlebot</option>
+            </select>
+          </label>
+        </div>
+        <div class="date-toolbar">
+          <div class="date-toolbar-row">
+            <label class="filter-select-lbl">Da (UTC)
+              <input type="date" id="start">
+            </label>
+            <label class="filter-select-lbl">A (UTC)
+              <input type="date" id="end">
+            </label>
+            <button type="button" class="btn-load" id="load">Aggiorna</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="panel" id="result-panel" style="display:none;">
+    <strong style="font-size:1.1rem;">Hit per tipologia HTTP (edge) e giorno</strong>
+    <p class="meta small" style="margin-top:0.25rem;">Raggruppamento: <strong>200</strong>, <strong>3xx</strong>, <strong>4xx</strong>, <strong>5xx</strong>, <strong>Altro</strong>. I menu a tendina nell’intestazione restringono tutti i grafici. Dove i valori sono zero la linea è interrotta. Checkbox ai lati: asse Y sinistro vs destro.</p>
+    <div class="chart-axis-layout" id="layout-status">
+      <aside class="axis-side" id="axis-status-left" aria-label="Metriche asse Y sinistro"></aside>
+      <div class="chart-wrap--embed">
+        <canvas id="chart-status"></canvas>
+      </div>
+      <aside class="axis-side" id="axis-status-right" aria-label="Metriche asse Y destro"></aside>
+    </div>
+  </div>
+
+  <div class="panel" id="bucket-panel" style="display:none;">
+    <strong style="font-size:1.1rem;">Con vs senza query string (per giorno)</strong>
+    <p class="meta small" style="margin-top:0.25rem;">Rispetta i filtri HTTP e classe Googlebot nei menu in intestazione. A zero hit la linea si interrompe. <strong>Sì</strong> / <strong>No</strong> ai lati: asse sinistro o destro.</p>
+    <div class="chart-axis-layout" id="layout-bucket">
+      <aside class="axis-side" id="axis-bucket-left" aria-label="Metriche asse Y sinistro"></aside>
+      <div class="chart-wrap--embed tall">
+        <canvas id="chart-bucket"></canvas>
+      </div>
+      <aside class="axis-side" id="axis-bucket-right" aria-label="Metriche asse Y destro"></aside>
+    </div>
+  </div>
+
+  <div class="panel" id="ua-panel" style="display:none;">
+    <strong style="font-size:1.1rem;">Volume per classe User-Agent (per giorno)</strong>
+    <p class="meta small" style="margin-top:0.25rem;"><strong>Googlebot</strong> (web), <strong>Googlebot-Image</strong>, <strong>Altri Googlebot</strong> (es. Video/News). Rispetta filtri HTTP e query string; zeri senza segmento. Stessa logica assi con checkbox.</p>
+    <div class="chart-axis-layout" id="layout-ua">
+      <aside class="axis-side" id="axis-ua-left" aria-label="Metriche asse Y sinistro"></aside>
+      <div class="chart-wrap--embed tall">
+        <canvas id="chart-ua"></canvas>
+      </div>
+      <aside class="axis-side" id="axis-ua-right" aria-label="Metriche asse Y destro"></aside>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="meta" style="margin-top:0;">
+      {% if configured %}
+      Credenziali API: OK (zona …{{ zone_tail }}). Ingest pianificato via variabili d’ambiente (UTC).
+      {% else %}
+      <span class="err">Manca configurazione:</span> imposta <code>CLOUDFLARE_ZONE_ID</code> e <code>CLOUDFLARE_API_TOKEN</code>.
+      {% endif %}
+    </p>
+    <div id="status-panel"
+         hx-get="{{ url_for('partial_last_run') }}"
+         hx-trigger="load, every 60s"
+         hx-swap="innerHTML">
+      <p class="meta muted">Caricamento stato ingest…</p>
+    </div>
+    {% if configured %}
+    <div class="meta small" style="margin-top:0.75rem;">
+      <strong style="color:var(--text);">Backfill manuale</strong>
+      <span class="muted"> — solo entro il lookback delle API (tipico «7+1» giorni). L’operazione lunga resta in background; controlla i log o l’ultimo run qui sopra.</span>
+      <div class="row" style="margin-top:0.6rem;">
+        <button type="button" class="secondary" id="btn-ingest-yesterday">Solo ieri (UTC)</button>
+        <button type="button" class="secondary warn" id="btn-backfill-lookback" title="Un giorno alla volta, dal più vecchio a ieri">
+          Backfill {{ backfill_days }} giorni UTC (7+1)
+        </button>
+      </div>
+      <p id="ingest-msg" class="muted" style="margin-top:0.5rem;max-width:48rem;"></p>
+    </div>
+    {% endif %}
+    <p class="meta chart-summary" id="summary"></p>
+  </div>
+
+  <div id="error-box"></div>
+
+  <script>
+    let chartStatus, chartBucket, chartUa;
+
+    const HTTP_FAMILIES = ["200", "3xx", "4xx", "5xx", "altro"];
+    const HTTP_LABELS = { "200": "200", "3xx": "3xx", "4xx": "4xx", "5xx": "5xx", "altro": "Altro" };
+    const HTTP_COLORS = {
+      "200": "rgba(34, 197, 94, 0.95)",
+      "3xx": "rgba(59, 130, 246, 0.95)",
+      "4xx": "rgba(245, 158, 11, 0.95)",
+      "5xx": "rgba(239, 68, 68, 0.95)",
+      "altro": "rgba(148, 163, 184, 0.95)",
+    };
+
+    const UA_KINDS = ["googlebot", "googlebot_image", "googlebot_other"];
+    const UA_LABELS = {
+      googlebot: "Googlebot",
+      googlebot_image: "Googlebot-Image",
+      googlebot_other: "Altri Googlebot",
+    };
+    const UA_SHORT = {
+      googlebot: "Bot",
+      googlebot_image: "Img",
+      googlebot_other: "Altri",
+    };
+    const UA_COLORS = {
+      googlebot: "rgba(34, 197, 94, 0.95)",
+      googlebot_image: "rgba(168, 85, 247, 0.95)",
+      googlebot_other: "rgba(56, 189, 248, 0.95)",
+    };
+
+    let lastLabels = [];
+    let lastFamilies = {};
+    let lastBucket = { no_query: [], yes_query: [] };
+    let lastUa = { googlebot: [], googlebot_image: [], googlebot_other: [] };
+    let lastHasAltro = false;
+    let lastRawFacts = [];
+    let lastRange = { start: "", end: "" };
+    let lastRowCount = 0;
+    let lastHitsFiltered = 0;
+
+    function utcDateStr(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    function calendarDays(startS, endS) {
+      const out = [];
+      const t0 = Date.parse(startS + "T00:00:00Z");
+      const t1 = Date.parse(endS + "T00:00:00Z");
+      if (Number.isNaN(t0) || Number.isNaN(t1) || t1 < t0) return out;
+      for (let t = t0; t <= t1; t += 86400000) {
+        out.push(new Date(t).toISOString().slice(0, 10));
+      }
+      return out;
+    }
+
+    function httpFamilyForCode(status) {
+      const c = Number(status);
+      if (Number.isNaN(c)) return "altro";
+      if (c === 200) return "200";
+      if (c >= 300 && c < 400) return "3xx";
+      if (c >= 400 && c < 500) return "4xx";
+      if (c >= 500 && c < 600) return "5xx";
+      return "altro";
+    }
+
+    function getFilterHttpFamily() {
+      const el = document.getElementById("filter-http");
+      const v = el ? el.value : "all";
+      return v === "all" ? null : v;
+    }
+
+    function rowMatchesDashboardFilters(row) {
+      const httpF = getFilterHttpFamily();
+      if (httpF !== null && httpFamilyForCode(row.s) !== httpF) return false;
+      const qsEl = document.getElementById("filter-qs");
+      const qsVal = qsEl ? qsEl.value : "all";
+      if (qsVal !== "all" && row.b !== parseInt(qsVal, 10)) return false;
+      const uaEl = document.getElementById("filter-ua");
+      const uaVal = uaEl ? uaEl.value : "all";
+      if (uaVal !== "all" && row.uk !== uaVal) return false;
+      return true;
+    }
+
+    /** Valori 0 → null così Chart.js non disegna il segmento (spanGaps: false). */
+    function seriesWithGapsForZero(arr) {
+      return (arr || []).map(v => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      });
+    }
+
+    function aggregateFilteredFacts() {
+      const labels = calendarDays(lastRange.start, lastRange.end);
+      const n = labels.length;
+      const dayIdx = {};
+      labels.forEach((d, i) => {
+        dayIdx[d] = i;
+      });
+
+      const families = {};
+      HTTP_FAMILIES.forEach(f => {
+        families[f] = new Array(n).fill(0);
+      });
+      const bucket = { no_query: new Array(n).fill(0), yes_query: new Array(n).fill(0) };
+      const uaAgg = {
+        googlebot: new Array(n).fill(0),
+        googlebot_image: new Array(n).fill(0),
+        googlebot_other: new Array(n).fill(0),
+      };
+
+      let hitsFiltered = 0;
+      for (let i = 0; i < lastRawFacts.length; i++) {
+        const row = lastRawFacts[i];
+        if (!rowMatchesDashboardFilters(row)) continue;
+        const di = dayIdx[row.d];
+        if (di === undefined) continue;
+        const h = Number(row.h) || 0;
+        hitsFiltered += h;
+        const fam = httpFamilyForCode(row.s);
+        if (families[fam]) families[fam][di] += h;
+        if (row.b === 0) bucket.no_query[di] += h;
+        else bucket.yes_query[di] += h;
+        if (uaAgg[row.uk] !== undefined) uaAgg[row.uk][di] += h;
+      }
+
+      lastLabels = labels;
+      lastFamilies = families;
+      lastHasAltro = familiesMax(lastFamilies.altro) > 0;
+      lastBucket = bucket;
+      lastUa = uaAgg;
+      lastHitsFiltered = hitsFiltered;
+    }
+
+    function updateChartSummary() {
+      const el = document.getElementById("summary");
+      if (!el) return;
+      el.textContent =
+        "Righe nel DB (intervallo richiesto): " +
+        lastRowCount +
+        " · giorni sull’asse (UTC): " +
+        lastLabels.length +
+        " · somma hit dopo filtri: " +
+        lastHitsFiltered.toLocaleString("it-IT");
+    }
+
+    function defaultRange() {
+      const end = new Date();
+      const start = new Date(end);
+      start.setUTCDate(start.getUTCDate() - 29);
+      document.getElementById("end").value = utcDateStr(end);
+      document.getElementById("start").value = utcDateStr(start);
+    }
+
+    function showError(msg) {
+      const box = document.getElementById("error-box");
+      box.innerHTML = msg ? '<div class="err">' + msg + '</div>' : '';
+    }
+
+    function familiesMax(fam) {
+      return Math.max(0, ...fam);
+    }
+
+    function wireMetricAxisPair(container, metric, defaultLeft, onUpdate) {
+      const l = container.querySelector('input[data-metric="' + metric + '"][data-side="left"]');
+      const r = container.querySelector('input[data-metric="' + metric + '"][data-side="right"]');
+      if (!l || !r) return;
+      l.checked = defaultLeft;
+      r.checked = !defaultLeft;
+      l.addEventListener("change", () => {
+        if (l.checked) r.checked = false;
+        else r.checked = true;
+        onUpdate();
+      });
+      r.addEventListener("change", () => {
+        if (r.checked) l.checked = false;
+        else l.checked = true;
+        onUpdate();
+      });
+    }
+
+    function axisChkHtml(metric, side, shortLabel, title) {
+      const t = title ? ' title="' + title.replace(/"/g, "&quot;") + '"' : "";
+      return (
+        '<label class="axis-chk"' + t + ">" +
+        '<input type="checkbox" data-metric="' + metric + '" data-side="' + side + '">' +
+        '<span class="axis-chk-txt">' + shortLabel + "</span></label>"
+      );
+    }
+
+    function buildStatusAxisControls(hasAltro) {
+      const layout = document.getElementById("layout-status");
+      const leftEl = document.getElementById("axis-status-left");
+      const rightEl = document.getElementById("axis-status-right");
+      const metrics = HTTP_FAMILIES.filter(k => k !== "altro" || hasAltro);
+      leftEl.innerHTML = metrics.map(m => axisChkHtml(m, "left", HTTP_LABELS[m], HTTP_LABELS[m])).join("");
+      rightEl.innerHTML = metrics.map(m => axisChkHtml(m, "right", HTTP_LABELS[m], HTTP_LABELS[m])).join("");
+
+      metrics.forEach(m => {
+        const defLeft = m === "200" || m === "3xx";
+        wireMetricAxisPair(layout, m, defLeft, () => renderStatusChart());
+      });
+    }
+
+    function buildBucketAxisControls() {
+      const layout = document.getElementById("layout-bucket");
+      const leftEl = document.getElementById("axis-bucket-left");
+      const rightEl = document.getElementById("axis-bucket-right");
+      const items = [
+        { metric: "yes", short: "Sì", title: "Sì (con query string)" },
+        { metric: "no", short: "No", title: "No (senza query string)" },
+      ];
+      leftEl.innerHTML = items.map(it => axisChkHtml(it.metric, "left", it.short, it.title)).join("");
+      rightEl.innerHTML = items.map(it => axisChkHtml(it.metric, "right", it.short, it.title)).join("");
+
+      wireMetricAxisPair(layout, "yes", true, () => renderBucketChart());
+      wireMetricAxisPair(layout, "no", false, () => renderBucketChart());
+    }
+
+    function buildUaAxisControls() {
+      const layout = document.getElementById("layout-ua");
+      const leftEl = document.getElementById("axis-ua-left");
+      const rightEl = document.getElementById("axis-ua-right");
+      leftEl.innerHTML = UA_KINDS.map(k => axisChkHtml(k, "left", UA_SHORT[k], UA_LABELS[k])).join("");
+      rightEl.innerHTML = UA_KINDS.map(k => axisChkHtml(k, "right", UA_SHORT[k], UA_LABELS[k])).join("");
+      UA_KINDS.forEach(k => {
+        const defLeft = k === "googlebot";
+        wireMetricAxisPair(layout, k, defLeft, () => renderUaChart());
+      });
+    }
+
+    function getUaAxisMap() {
+      const el = document.getElementById("layout-ua");
+      const map = {};
+      if (!el) return map;
+      UA_KINDS.forEach(k => {
+        const l = el.querySelector('input[data-metric="' + k + '"][data-side="left"]');
+        if (l) map[k] = l.checked ? "y" : "y1";
+      });
+      return map;
+    }
+
+    function getStatusAxisMap() {
+      const el = document.getElementById("layout-status");
+      const map = {};
+      if (!el) return map;
+      HTTP_FAMILIES.forEach(key => {
+        if (key === "altro" && !lastHasAltro) return;
+        const l = el.querySelector('input[data-metric="' + key + '"][data-side="left"]');
+        if (!l) return;
+        map[key] = l.checked ? "y" : "y1";
+      });
+      return map;
+    }
+
+    function getBucketAxisMap() {
+      const el = document.getElementById("layout-bucket");
+      if (!el) return { yes: "y", no: "y1" };
+      const ly = el.querySelector('input[data-metric="yes"][data-side="left"]');
+      const ln = el.querySelector('input[data-metric="no"][data-side="left"]');
+      return {
+        yes: ly && ly.checked ? "y" : "y1",
+        no: ln && ln.checked ? "y" : "y1",
+      };
+    }
+
+    function dualAxisLineOptions(useLeft, useRight) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        elements: {
+          line: { spanGaps: false },
+        },
+        scales: {
+          x: {
+            ticks: { color: "#8b9cb3" },
+            grid: { color: "#2d3a4d" },
+          },
+          y: {
+            type: "linear",
+            position: "left",
+            display: useLeft,
+            min: 0,
+            ticks: { color: "#94a3b8" },
+            grid: { color: "#2d3a4d" },
+            title: { display: false },
+          },
+          y1: {
+            type: "linear",
+            position: "right",
+            display: useRight,
+            min: 0,
+            ticks: { color: "#cbd5e1" },
+            grid: { drawOnChartArea: false },
+            title: { display: false },
+          },
+        },
+        plugins: {
+          legend: { labels: { color: "#e7ecf3" } },
+          title: { display: false },
+        },
+      };
+    }
+
+    function renderStatusChart() {
+      if (!lastLabels.length) return;
+      const axisMap = getStatusAxisMap();
+      const datasets = [];
+      HTTP_FAMILIES.forEach(key => {
+        if (key === "altro" && !lastHasAltro) return;
+        const data = lastFamilies[key] || [];
+        if (familiesMax(data) === 0 && key === "altro") return;
+        datasets.push({
+          label: HTTP_LABELS[key],
+          data: seriesWithGapsForZero(data),
+          yAxisID: axisMap[key] || ((key === "200" || key === "3xx") ? "y" : "y1"),
+          borderColor: HTTP_COLORS[key],
+          backgroundColor: "transparent",
+          tension: 0,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          fill: false,
+        });
+      });
+
+      const useLeft = datasets.some(d => d.yAxisID === "y");
+      const useRight = datasets.some(d => d.yAxisID === "y1");
+
+      const ctx = document.getElementById("chart-status").getContext("2d");
+      if (chartStatus) chartStatus.destroy();
+      chartStatus = new Chart(ctx, {
+        type: "line",
+        data: { labels: lastLabels.slice(), datasets },
+        options: dualAxisLineOptions(useLeft, useRight),
+      });
+    }
+
+    function renderBucketChart() {
+      if (!lastLabels.length) return;
+      const ax = getBucketAxisMap();
+      const yesData = (lastBucket.yes_query || []).slice();
+      const noData = (lastBucket.no_query || []).slice();
+
+      const bucketDatasets = [
+        {
+          label: "Sì (con query)",
+          data: seriesWithGapsForZero(yesData),
+          yAxisID: ax.yes,
+          borderColor: "rgba(249, 115, 22, 0.95)",
+          backgroundColor: "transparent",
+          tension: 0,
+          pointRadius: 3,
+          borderWidth: 2,
+          fill: false,
+        },
+        {
+          label: "No (senza query)",
+          data: seriesWithGapsForZero(noData),
+          yAxisID: ax.no,
+          borderColor: "rgba(148, 163, 184, 0.95)",
+          backgroundColor: "transparent",
+          tension: 0,
+          pointRadius: 3,
+          borderWidth: 2,
+          fill: false,
+        },
+      ];
+      const useLeftB = bucketDatasets.some(d => d.yAxisID === "y");
+      const useRightB = bucketDatasets.some(d => d.yAxisID === "y1");
+
+      const ctx2 = document.getElementById("chart-bucket").getContext("2d");
+      if (chartBucket) chartBucket.destroy();
+      chartBucket = new Chart(ctx2, {
+        type: "line",
+        data: { labels: lastLabels.slice(), datasets: bucketDatasets },
+        options: dualAxisLineOptions(useLeftB, useRightB),
+      });
+    }
+
+    function renderUaChart() {
+      if (!lastLabels.length) return;
+      const ax = getUaAxisMap();
+      const uaDatasets = UA_KINDS.map(k => ({
+        label: UA_LABELS[k],
+        data: seriesWithGapsForZero(lastUa[k] || []),
+        yAxisID: ax[k] || (k === "googlebot" ? "y" : "y1"),
+        borderColor: UA_COLORS[k],
+        backgroundColor: "transparent",
+        tension: 0,
+        pointRadius: 3,
+        borderWidth: 2,
+        fill: false,
+      }));
+      const useLeftU = uaDatasets.some(d => d.yAxisID === "y");
+      const useRightU = uaDatasets.some(d => d.yAxisID === "y1");
+      const ctx = document.getElementById("chart-ua").getContext("2d");
+      if (chartUa) chartUa.destroy();
+      chartUa = new Chart(ctx, {
+        type: "line",
+        data: { labels: lastLabels.slice(), datasets: uaDatasets },
+        options: dualAxisLineOptions(useLeftU, useRightU),
+      });
+    }
+
+    function applyFactsPayload(j) {
+      lastRange = { start: j.start || "", end: j.end || "" };
+      lastRawFacts = Array.isArray(j.facts) ? j.facts : [];
+      lastRowCount = Number(j.rows) || 0;
+      aggregateFilteredFacts();
+      buildStatusAxisControls(lastHasAltro);
+      buildBucketAxisControls();
+      buildUaAxisControls();
+      renderStatusChart();
+      renderBucketChart();
+      renderUaChart();
+      updateChartSummary();
+    }
+
+    function onDashboardFilterChange() {
+      const prevAltro = lastHasAltro;
+      aggregateFilteredFacts();
+      if (lastHasAltro !== prevAltro) buildStatusAxisControls(lastHasAltro);
+      renderStatusChart();
+      renderBucketChart();
+      renderUaChart();
+      updateChartSummary();
+    }
+
+    function wireDashboardFilters() {
+      ["filter-http", "filter-qs", "filter-ua"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", onDashboardFilterChange);
+      });
+    }
+
+    document.getElementById("load").addEventListener("click", async () => {
+      const btn = document.getElementById("load");
+      showError("");
+      btn.disabled = true;
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+      const qs = new URLSearchParams({ start, end });
+      try {
+        const r = await fetch("/api/facts?" + qs);
+        const j = await r.json();
+        if (!j.ok) {
+          showError(j.error || "Errore");
+          document.getElementById("result-panel").style.display = "none";
+          document.getElementById("bucket-panel").style.display = "none";
+          document.getElementById("ua-panel").style.display = "none";
+          return;
+        }
+        document.getElementById("result-panel").style.display = "block";
+        document.getElementById("bucket-panel").style.display = "block";
+        document.getElementById("ua-panel").style.display = "block";
+        applyFactsPayload(j);
+      } catch (e) {
+        showError(String(e));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    {% if configured %}
+    document.getElementById("btn-ingest-yesterday").addEventListener("click", async () => {
+      const msg = document.getElementById("ingest-msg");
+      const btn = document.getElementById("btn-ingest-yesterday");
+      const bf = document.getElementById("btn-backfill-lookback");
+      msg.textContent = "Avvio ingest ieri…";
+      btn.disabled = true;
+      bf.disabled = true;
+      try {
+        const r = await fetch("/api/trigger-ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const j = await r.json();
+        msg.textContent = j.ok ? (j.message || "OK") : (j.error || "Errore");
+        if (window.htmx) htmx.ajax("GET", "/partials/last-run", { target: "#status-panel", swap: "innerHTML" });
+      } catch (e) {
+        msg.textContent = String(e);
+      } finally {
+        btn.disabled = false;
+        bf.disabled = false;
+      }
+    });
+    document.getElementById("btn-backfill-lookback").addEventListener("click", async () => {
+      const msg = document.getElementById("ingest-msg");
+      const btn = document.getElementById("btn-backfill-lookback");
+      const y = document.getElementById("btn-ingest-yesterday");
+      msg.textContent = "Avvio backfill…";
+      btn.disabled = true;
+      y.disabled = true;
+      try {
+        const r = await fetch("/api/trigger-backfill", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const j = await r.json();
+        if (j.ok) {
+          msg.textContent = (j.message || "OK") + (j.dates ? " Date: " + j.dates.join(", ") : "");
+        } else {
+          msg.textContent = j.error || "Errore";
+        }
+        if (window.htmx) htmx.ajax("GET", "/partials/last-run", { target: "#status-panel", swap: "innerHTML" });
+      } catch (e) {
+        msg.textContent = String(e);
+      } finally {
+        btn.disabled = false;
+        y.disabled = false;
+      }
+    });
+    {% endif %}
+
+    defaultRange();
+    wireDashboardFilters();
+    document.getElementById("load").click();
+  </script>
+</body>
+</html>
