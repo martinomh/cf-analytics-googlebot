@@ -1,10 +1,6 @@
 services:
   cf-googlebot-archiver:
-    build:
-      context: .
-      # Host datati (es. Buster): seccomp → PermissionError su time.time() durante pip. Solo build.
-      # Richiede BuildKit: NON usare DOCKER_BUILDKIT=0 (il builder classico non supporta privileged).
-      privileged: true
+    build: .
     image: cf-googlebot-archiver:local
     ports:
       - "${HTTP_PORT:-418}:418"

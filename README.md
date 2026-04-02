@@ -63,7 +63,14 @@ docker buildx build --platform linux/arm/v7 -t cf-googlebot-archiver:armv7 --loa
 
 Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
-**Raspberry / build:** base **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). In `docker-compose.yml`, **`build.privileged: true`** aggira seccomp stretti su host datati (es. **Buster**), dove `pip` poteva dare **`PermissionError` su `time.time()`** (import `logging`). **`build.privileged` funziona solo con BuildKit:** se avevi messo `DOCKER_BUILDKIT=0` (o `COMPOSE_DOCKER_CLI_BUILD=0`) per debug, **toglilo** prima di `compose build` / `up --build`, oppure esegui esplicitamente `export DOCKER_BUILDKIT=1` (e `export COMPOSE_DOCKER_CLI_BUILD=1`). Il privilegio vale **solo** i container di build, non il servizio avviato. Init a runtime: `init: true`. Per **TLS**, NTP e DNS.
+**Raspberry / build:** base **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). Su host molto vecchi (es. **Debian Buster**), il **seccomp** del daemon può far fallire `pip` con **`PermissionError` su `time.time()`** (import `logging`). **`docker compose up --build` con BuildKit** va bene su macchine recenti; su Buster, se compare quell’errore o messaggi su **entitlement security.insecure**, usa lo script **`build-legacy-host.sh`** (builder classico + `seccomp=unconfined` solo per il `docker build`, senza toccare la config del daemon):
+
+   ```text
+   chmod +x build-legacy-host.sh
+   ./build-legacy-host.sh
+   ```
+
+   Poi per i riavvii senza ricostruire: `docker compose up -d`. Init a runtime: `init: true` in Compose. Per **TLS** in build, NTP e DNS.
 
 ## API e operatività
 
