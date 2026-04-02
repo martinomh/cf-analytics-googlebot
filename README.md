@@ -65,7 +65,7 @@ Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
 **Raspberry / build:** immagine **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). Su macchine recenti basta `docker compose up -d --build` (BuildKit consigliato).
 
-**Solo Debian Buster (o seccomp datato):** se `pip` in build fallisce con **`PermissionError` su `time.time()`** oppure BuildKit risponde che **`security.insecure` non è consentita**, il daemon va autorizzato alle **entitlements** BuildKit, poi si usa il file overlay **`docker-compose.buster.yml`** (che imposta `build.privileged` solo lì).
+**Solo Debian Buster (o seccomp datato):** se `pip` in build fallisce con **`PermissionError` su `time.time()`** (anche dopo aver provato `build.privileged`), la causa è il **sandbox seccomp sui singoli `RUN` in BuildKit**: serve **`Dockerfile.buster`**, che usa **`RUN --security=insecure`** solo per `pip install`, e il daemon deve consentire l’entitlement **`security-insecure`**. Il file **`docker-compose.buster.yml`** punta a quel Dockerfile (non basta `privileged` sul servizio di build).
 
 1. Modifica **`/etc/docker/daemon.json`** (JSON valido: se il file esiste già, **unisci** le chiavi senza duplicare l’oggetto radice). Esempio minimo se parti da zero:
 

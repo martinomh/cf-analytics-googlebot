@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Multi-arch: docker buildx build --platform linux/arm/v7,linux/arm64,linux/amd64 .
 # Debian slim (glibc): su Raspberry Pi armv7 Alpine+Python 3.12 può far crashare pip (es. exit 139 / SIGSEGV).
 FROM python:3.12-slim-bookworm

@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1
+# Come Dockerfile, ma `pip` gira senza sandbox seccomp BuildKit (vecchi host tipo Buster: time.time() → EPERM).
+# Richiede entitlement `security-insecure` in /etc/docker/daemon.json + BuildKit.
+# Usa: docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+COPY requirements.txt .
+RUN --security=insecure pip install --no-cache-dir -r requirements.txt
+
+COPY app ./app
+COPY migrations ./migrations
+
+EXPOSE 418
+
+CMD ["python", "-m", "app.server"]
