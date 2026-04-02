@@ -63,7 +63,7 @@ docker buildx build --platform linux/arm/v7 -t cf-googlebot-archiver:armv7 --loa
 
 Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
-**Raspberry / build:** base **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). In `docker-compose.yml`, **`build.privileged: true`** aggira seccomp troppo stretti su host datati (es. **Buster**), dove `pip` poteva fallire con **`PermissionError` su `time.time()`** durante l’import di `logging`. Vale **solo** per i container di build, non per il servizio in esecuzione. L’init a runtime è Docker (`init: true`). Per **TLS** in build, controlla data/ora (NTP) e DNS.
+**Raspberry / build:** base **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). In `docker-compose.yml`, **`build.privileged: true`** aggira seccomp stretti su host datati (es. **Buster**), dove `pip` poteva dare **`PermissionError` su `time.time()`** (import `logging`). **`build.privileged` funziona solo con BuildKit:** se avevi messo `DOCKER_BUILDKIT=0` (o `COMPOSE_DOCKER_CLI_BUILD=0`) per debug, **toglilo** prima di `compose build` / `up --build`, oppure esegui esplicitamente `export DOCKER_BUILDKIT=1` (e `export COMPOSE_DOCKER_CLI_BUILD=1`). Il privilegio vale **solo** i container di build, non il servizio avviato. Init a runtime: `init: true`. Per **TLS**, NTP e DNS.
 
 ## API e operatività
 
