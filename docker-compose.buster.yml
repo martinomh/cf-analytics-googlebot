@@ -1,0 +1,10 @@
+# Overlay solo per host molto vecchi (es. Debian Buster) dove seccomp fa fallire pip (PermissionError su time.time()).
+# 1) Abilita le entitlements BuildKit sul daemon (vedi README, sezione Raspberry / Buster).
+# 2) BuildKit obbligatorio: export DOCKER_BUILDKIT=1
+# 3) Avvio:
+#    docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build
+services:
+  cf-googlebot-archiver:
+    build:
+      context: .
+      privileged: true

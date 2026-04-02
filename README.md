@@ -63,14 +63,35 @@ docker buildx build --platform linux/arm/v7 -t cf-googlebot-archiver:armv7 --loa
 
 Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
-**Raspberry / build:** base **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). Su host molto vecchi (es. **Debian Buster**), il **seccomp** del daemon può far fallire `pip` con **`PermissionError` su `time.time()`** (import `logging`). **`docker compose up --build` con BuildKit** va bene su macchine recenti; su Buster, se compare quell’errore o messaggi su **entitlement security.insecure**, usa lo script **`build-legacy-host.sh`** (builder classico + `seccomp=unconfined` solo per il `docker build`, senza toccare la config del daemon):
+**Raspberry / build:** immagine **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). Su macchine recenti basta `docker compose up -d --build` (BuildKit consigliato).
 
-   ```text
-   chmod +x build-legacy-host.sh
-   ./build-legacy-host.sh
+**Solo Debian Buster (o seccomp datato):** se `pip` in build fallisce con **`PermissionError` su `time.time()`** oppure BuildKit risponde che **`security.insecure` non è consentita**, il daemon va autorizzato alle **entitlements** BuildKit, poi si usa il file overlay **`docker-compose.buster.yml`** (che imposta `build.privileged` solo lì).
+
+1. Modifica **`/etc/docker/daemon.json`** (JSON valido: se il file esiste già, **unisci** le chiavi senza duplicare l’oggetto radice). Esempio minimo se parti da zero:
+
+   ```json
+   {
+     "builder": {
+       "entitlements": {
+         "network-host": true,
+         "security-insecure": true
+       }
+     }
+   }
    ```
 
-   Poi per i riavvii senza ricostruire: `docker compose up -d`. Init a runtime: `init: true` in Compose. Per **TLS** in build, NTP e DNS.
+2. Riavvia Docker: **`sudo systemctl restart docker`**.
+
+3. Build e avvio con **BuildKit** e doppio compose file:
+
+   ```text
+   export DOCKER_BUILDKIT=1
+   docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build
+   ```
+
+   In seguito, senza ricostruire: `docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d` (oppure solo `docker compose up -d` se l’immagine è già presente con lo stesso tag).
+
+**Nota:** su molti daemon Linux **`docker build --security-opt seccomp=...` non è supportato** (errore *security options are not supported on linux*): non è una soluzione affidabile su Pi; l’overlay + entitlements è il percorso previsto per Buster. Init a runtime: `init: true`. Per **TLS**, NTP e DNS.
 
 ## API e operatività
 
