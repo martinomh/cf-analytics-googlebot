@@ -65,33 +65,33 @@ Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
 **Raspberry / build:** immagine **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). Su macchine recenti basta `docker compose up -d --build` (BuildKit consigliato).
 
-**Solo Debian Buster (o seccomp datato):** se `pip` in build fallisce con **`PermissionError` su `time.time()`** (anche dopo aver provato `build.privileged`), la causa è il **sandbox seccomp sui singoli `RUN` in BuildKit**: serve **`Dockerfile.buster`**, che usa **`RUN --security=insecure`** solo per `pip install`, e il daemon deve consentire l’entitlement **`security-insecure`**. Il file **`docker-compose.buster.yml`** punta a quel Dockerfile (non basta `privileged` sul servizio di build).
+**Solo Debian Buster (o seccomp datato):** il sandbox BuildKit sui `RUN` può far fallire `pip` con **`PermissionError` su `time.time()`**. Serve **`Dockerfile.buster`** (`RUN --security=insecure` solo su `pip install`).
 
-1. Modifica **`/etc/docker/daemon.json`** (JSON valido: se il file esiste già, **unisci** le chiavi senza duplicare l’oggetto radice). Esempio minimo se parti da zero:
+**Percorso consigliato (spesso basta, senza toccare `daemon.json`):** lo script **`build-buster.sh`** invoca **`docker buildx build --allow security.insecure`**, che richiede l’entitlement **solo per quel build** lato client (Docker 23+ con buildx):
 
-   ```json
-   {
-     "builder": {
-       "entitlements": {
-         "network-host": true,
-         "security-insecure": true
-       }
-     }
-   }
-   ```
+```text
+chmod +x build-buster.sh
+./build-buster.sh
+```
 
-2. Riavvia Docker: **`sudo systemctl restart docker`**.
+Poi, senza ricostruire: `docker compose up -d`.
 
-3. Build e avvio con **BuildKit** e doppio compose file:
+**Se compare ancora** `security.insecure is not allowed`: prova ad aggiungere in **`/etc/docker/daemon.json`** (JSON valido, unisci con le chiavi già presenti) la sezione `builder.entitlements` come sotto, poi **`sudo systemctl restart docker`**, e rilancia **`./build-buster.sh`**.
 
-   ```text
-   export DOCKER_BUILDKIT=1
-   docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build
-   ```
+```json
+{
+  "builder": {
+    "entitlements": {
+      "network-host": true,
+      "security-insecure": true
+    }
+  }
+}
+```
 
-   In seguito, senza ricostruire: `docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d` (oppure solo `docker compose up -d` se l’immagine è già presente con lo stesso tag).
+**Alternativa:** con daemon già configurato, puoi usare **`docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build`** (stesso `Dockerfile.buster`).
 
-**Nota:** su molti daemon Linux **`docker build --security-opt seccomp=...` non è supportato** (errore *security options are not supported on linux*): non è una soluzione affidabile su Pi; l’overlay + entitlements è il percorso previsto per Buster. Init a runtime: `init: true`. Per **TLS**, NTP e DNS.
+**Nota:** il builder classico con `--security-opt seccomp=...` su molti ARM risponde *security options are not supported on linux*. Init a runtime: `init: true`. Per **TLS**, NTP e DNS.
 
 ## API e operatività
 

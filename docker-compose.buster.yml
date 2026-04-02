@@ -1,10 +1,8 @@
-# Host Debian Buster / seccomp datato: PermissionError su time.time() durante pip.
-# 1) /etc/docker/daemon.json → builder.entitlements.security-insecure (vedi README)
-# 2) export DOCKER_BUILDKIT=1
-# 3) docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build
-#
-# Nota: `build.privileged` non disattiva il sandbox dei singoli RUN in BuildKit; serve Dockerfile.buster
-# con `RUN --security=insecure` solo sul passo pip.
+# Stesso servizio, Dockerfile.buster (RUN --security=insecure su pip).
+# Preferisci ./build-buster.sh (usa buildx --allow security.insecure; spesso evita errori daemon.json).
+# Se usi solo compose: export DOCKER_BUILDKIT=1
+#     docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build
+# e, se serve, builder.entitlements in /etc/docker/daemon.json (README).
 services:
   cf-googlebot-archiver:
     build:
