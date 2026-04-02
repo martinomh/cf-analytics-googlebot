@@ -1,10 +1,10 @@
-# CloudFlare Analytics Googlebot Archiver
+# Archivio Googlebot da Cloudflare Analytics
 
 Archiviazione **giornaliera** di metriche aggregate **Cloudflare GraphQL Analytics** (perimetro **Googlebot**), persistenza in **SQLite** e consultazione via **dashboard LAN** — contesto **home lab** (es. Raspberry Pi), uso **diagnostico/direzionale**, non analytics utenti.
 
 ---
 
-### Disclaimer — sicurezza e perimetro d’uso
+### ⚠️ Disclaimer — sicurezza e perimetro d’uso ⚠️
 
 **Nessuna autenticazione.** L’app **non** espone login né protezione sulle API: chi raggiunge host e porta può **consultare la dashboard** e, con il servizio configurato (token Cloudflare nel `.env` / container), **chiamare ingest e backfill** come previsto dal codice.
 
