@@ -63,6 +63,8 @@ docker buildx build --platform linux/arm/v7 -t cf-googlebot-archiver:armv7 --loa
 
 Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
+**Raspberry / build:** l’immagine **non** esegue `apk` in fase di build (niente `tini` da mirror Alpine); l’init nel container è quello di Docker (`init: true` in `docker-compose.yml`). Se `pip` o altri step in build falliscono con **TLS / certificato non attendibile**, controlla **data e ora** del Pi (`timedatectl`, sincronizzazione NTP) e rete/DNS.
+
 ## API e operatività
 
 | Endpoint | Ruolo |

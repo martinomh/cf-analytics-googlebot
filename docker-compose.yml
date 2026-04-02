@@ -12,6 +12,7 @@ services:
       HTTP_PORT: "418"
     volumes:
       - cf_googlebot_sqlite:/data
+    init: true
     restart: unless-stopped
     healthcheck:
       test:
