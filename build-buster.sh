@@ -6,4 +6,4 @@ cd "$(dirname "$0")"
 IMAGE="${IMAGE:-cf-googlebot-archiver:local}"
 export DOCKER_BUILDKIT=1
 docker buildx build --load --allow security.insecure -f Dockerfile.buster -t "$IMAGE" .
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d

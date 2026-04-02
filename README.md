@@ -65,7 +65,7 @@ Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
 **Raspberry / build:** immagine **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). Su macchine recenti basta `docker compose up -d --build` (BuildKit consigliato).
 
-**Solo Debian Buster (o seccomp datato):** il sandbox BuildKit sui `RUN` può far fallire `pip` con **`PermissionError` su `time.time()`**. Serve **`Dockerfile.buster`** (`RUN --security=insecure` solo su `pip install`).
+**Solo Debian Buster (o seccomp datato):** il sandbox BuildKit sui `RUN` può far fallire `pip` con **`PermissionError` su `time.time()`**. Serve **`Dockerfile.buster`** (`RUN --security=insecure` solo su `pip install`). **Dopo il build**, lo stesso seccomp può far crashare il **container in esecuzione** (stesso errore su `import logging`): **`docker-compose.buster.yml`** imposta **`security_opt: seccomp=unconfined`** per il servizio; usa il merge `-f` oppure **`./build-buster.sh`**, che lo applica automaticamente.
 
 **Percorso consigliato (spesso basta, senza toccare `daemon.json`):** lo script **`build-buster.sh`** invoca **`docker buildx build --allow security.insecure`**, che richiede l’entitlement **solo per quel build** lato client (Docker 23+ con buildx):
 
@@ -74,7 +74,7 @@ chmod +x build-buster.sh
 ./build-buster.sh
 ```
 
-Poi, senza ricostruire: `docker compose up -d`.
+Poi, senza ricostruire: `docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d` (stesso merge dello script, per il seccomp a runtime).
 
 **Se compare ancora** `security.insecure is not allowed`: prova ad aggiungere in **`/etc/docker/daemon.json`** (JSON valido, unisci con le chiavi già presenti) la sezione `builder.entitlements` come sotto, poi **`sudo systemctl restart docker`**, e rilancia **`./build-buster.sh`**.
 
