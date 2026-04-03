@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
-# Come Dockerfile, ma `pip` gira senza sandbox seccomp BuildKit (vecchi host tipo Buster: time.time() → EPERM).
-# Richiede entitlement `security-insecure` in /etc/docker/daemon.json + BuildKit.
-# Usa: docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build
+# Variante per host con seccomp datati (es. Raspberry Pi + Debian Buster): pip durante il build
+# e Python a runtime possono fallire con PermissionError su time.time() senza questi accorgimenti.
+# Vedi README in questa cartella. Build context = root del repository.
 FROM python:3.12-slim-bookworm
 
 WORKDIR /app

@@ -1,0 +1,16 @@
+# Override rispetto a docker-compose.yml in root: Dockerfile in questa cartella + seccomp a runtime.
+# Esegui sempre dalla root del repo (dove ci sono .env e docker-compose.yml).
+#
+# Consigliato: ./raspberry-buster/build.sh
+# In alternativa:
+#   docker compose -f docker-compose.yml -f raspberry-buster/docker-compose.buster.yml up -d --build
+#
+# Runtime: su kernel/seccomp datati Python 3.12 può fallire già su import logging (time.time()).
+# seccomp=unconfined risolve solo a runtime sul servizio.
+services:
+  cf-googlebot-archiver:
+    build:
+      context: ..
+      dockerfile: raspberry-buster/Dockerfile
+    security_opt:
+      - seccomp=unconfined

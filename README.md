@@ -65,33 +65,9 @@ Il volume Compose `cf_googlebot_sqlite` contiene il file SQLite in `/data`.
 
 **Raspberry / build:** immagine **`python:3.12-slim-bookworm`**: su **Pi armv7**, **Alpine** poteva far crashare `pip` (es. **139** / SIGSEGV). Su macchine recenti basta `docker compose up -d --build` (BuildKit consigliato).
 
-**Solo Debian Buster (o seccomp datato):** il sandbox BuildKit sui `RUN` può far fallire `pip` con **`PermissionError` su `time.time()`**. Serve **`Dockerfile.buster`** (`RUN --security=insecure` solo su `pip install`). **Dopo il build**, lo stesso seccomp può far crashare il **container in esecuzione** (stesso errore su `import logging`): **`docker-compose.buster.yml`** imposta **`security_opt: seccomp=unconfined`** per il servizio; usa il merge `-f` oppure **`./build-buster.sh`**, che lo applica automaticamente.
+**Solo vecchi host (es. Raspberry con Debian Buster / seccomp datato):** servono Dockerfile e Compose dedicati per il build (`pip`) e per il runtime del container. Non sono necessari per Bookworm o per la maggior parte degli ambienti. Istruzioni, percorsi e `daemon.json`: **[raspberry-buster/README.md](raspberry-buster/README.md)**.
 
-**Percorso consigliato (spesso basta, senza toccare `daemon.json`):** lo script **`build-buster.sh`** invoca **`docker buildx build --allow security.insecure`**, che richiede l’entitlement **solo per quel build** lato client (Docker 23+ con buildx):
-
-```text
-chmod +x build-buster.sh
-./build-buster.sh
-```
-
-Poi, senza ricostruire: `docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d` (stesso merge dello script, per il seccomp a runtime).
-
-**Se compare ancora** `security.insecure is not allowed`: prova ad aggiungere in **`/etc/docker/daemon.json`** (JSON valido, unisci con le chiavi già presenti) la sezione `builder.entitlements` come sotto, poi **`sudo systemctl restart docker`**, e rilancia **`./build-buster.sh`**.
-
-```json
-{
-  "builder": {
-    "entitlements": {
-      "network-host": true,
-      "security-insecure": true
-    }
-  }
-}
-```
-
-**Alternativa:** con daemon già configurato, puoi usare **`docker compose -f docker-compose.yml -f docker-compose.buster.yml up -d --build`** (stesso `Dockerfile.buster`).
-
-**Nota:** il builder classico con `--security-opt seccomp=...` su molti ARM risponde *security options are not supported on linux*. Init a runtime: `init: true`. Per **TLS**, NTP e DNS.
+**Nota:** su molti ARM il builder classico con `--security-opt seccomp=...` risponde *security options are not supported on linux*; la cartella `raspberry-buster` usa l’approccio documentato lì. Init a runtime: `init: true` nel Compose principale. Per **TLS**, NTP e DNS.
 
 ## API e operatività
 
